@@ -141,16 +141,16 @@ class InvertedIndex:
              term_frqncy_file: str = __term_frequencies_file_path,
              doc_lengths_file: str = __doc_lengths_file_path) -> None:
         if not os.path.isfile(index_file):
-            print(f"index file not found {index_file}")
+            print(f"index file not found {index_file}, run 'build' command first")
             return
         if not os.path.isfile(docmap_file):
-            print(f"docmap file not found {docmap_file}")
+            print(f"docmap file not found {docmap_file}, run 'build' command first")
             return
         if not os.path.isfile(term_frqncy_file):
-            print(f"term frequency file not found {term_frqncy_file}")
+            print(f"term frequency file not found {term_frqncy_file}, run 'build' command first")
             return
         if not os.path.isfile(doc_lengths_file):
-            print(f"doc lengths file not found {doc_lengths_file}")
+            print(f"doc lengths file not found {doc_lengths_file}, run 'build' command first")
             return
         print(f"loading index from {index_file}")
         with open(index_file, "rb") as f:
