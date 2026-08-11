@@ -12,11 +12,24 @@ class InvertedIndex:
 
     BM25_K1 = 1.5 # to calculate saturated term frequency
     BM25_B = 0.75 # to calculate doc length normalization
+    CACHE_DIR = "cache"
+    __index_file_path = os.path.join(CACHE_DIR, "index.pkl")
+    __docmap_file_path = os.path.join(CACHE_DIR, "docmap.pkl")
+    __term_frequencies_file_path = os.path.join(CACHE_DIR, "term_frequencies.pkl")
+    __doc_lengths_file_path = os.path.join(CACHE_DIR, "doc_lengths.pkl")
 
     def __init__(self):
         self.index: dict[str, list[int]] = dict() # token -> document_ids
         self.docmap: dict[int, str] = dict() # document_id -> tokens
         self.term_frequencies: dict[int, Counter] = dict() # document_id -> Counter(token->count)
+        self.doc_lengths: dict[int, int] = dict()
+
+
+    def __get_avg_doc_length(self) -> float:
+        if len(self.doc_lengths) == 0:
+            return 0.0
+        return float(sum(self.doc_lengths.values())) / len(self.doc_lengths)
+
 
     def __add_document(self, doc_id: int, token: str) -> None:
         counter: Counter = self.term_frequencies.get(doc_id, None)
@@ -31,6 +44,11 @@ class InvertedIndex:
                 doc_ids.append(doc_id)
         else:
             self.index[token] = [doc_id]
+
+        if self.doc_lengths.get(doc_id, 0) == 0:
+            self.doc_lengths[doc_id] = 1
+        else:
+            self.doc_lengths[doc_id] += 1
     
     def get_document(self, term: str) -> list[str]:
         doc_ids = self.index.get(term, None)
@@ -70,9 +88,12 @@ class InvertedIndex:
         return math.log((total_docs - df + 0.5) / (df + 0.5) + 1.0)
 
 
-    def get_bm25_tf(self, doc_id: int, term: str, k1: float=BM25_K1) -> float:
+    def get_bm25_tf(self, doc_id: int, term: str, k1: float=BM25_K1, b: float=BM25_B) -> float:
+        doc_length = self.doc_lengths.get(doc_id, 0)
+        length_norm = 1 - b + b * (doc_length / self.__get_avg_doc_length())
+
         tf = self.get_tf(doc_id=doc_id, term=term)
-        saturated_tf = (tf * (k1 + 1)) / (tf + k1)
+        saturated_tf = (tf * (k1 + 1)) / (tf + k1 * length_norm)
         return saturated_tf
 
 
@@ -97,7 +118,10 @@ class InvertedIndex:
         print(f"index build for {total} movies")
             
     
-    def save(self, index_file: str = "cache/index.pkl", docmap_file: str = "cache/docmap.pkl", term_frqncy_file: str = "cache/term_frequencies.pkl") -> None:
+    def save(self, index_file: str = __index_file_path, 
+             docmap_file: str = __docmap_file_path, 
+             term_frqncy_file: str = __term_frequencies_file_path,
+             doc_lengths_file: str = __doc_lengths_file_path) -> None:
         print(f"saving the index to disk to a file {index_file}")
         with open(index_file, "wb") as f:
             pickle.dump(self.index, f)
@@ -107,9 +131,15 @@ class InvertedIndex:
         print(f"saving the term frequencies index to disk to a file {term_frqncy_file}")
         with open(term_frqncy_file, "wb") as f:
             pickle.dump(self.term_frequencies, f)
+        print(f"saving the doc lengths index to disk to a file {doc_lengths_file}")
+        with open(doc_lengths_file, "wb") as f:
+            pickle.dump(self.doc_lengths, f)
 
 
-    def load(self, index_file: str = "cache/index.pkl", docmap_file: str = "cache/docmap.pkl", term_frqncy_file: str = "cache/term_frequencies.pkl") -> None:
+    def load(self, index_file: str = __index_file_path, 
+             docmap_file: str = __docmap_file_path, 
+             term_frqncy_file: str = __term_frequencies_file_path,
+             doc_lengths_file: str = __doc_lengths_file_path) -> None:
         if not os.path.isfile(index_file):
             print(f"index file not found {index_file}")
             return
@@ -118,6 +148,9 @@ class InvertedIndex:
             return
         if not os.path.isfile(term_frqncy_file):
             print(f"term frequency file not found {term_frqncy_file}")
+            return
+        if not os.path.isfile(doc_lengths_file):
+            print(f"doc lengths file not found {doc_lengths_file}")
             return
         print(f"loading index from {index_file}")
         with open(index_file, "rb") as f:
@@ -128,4 +161,7 @@ class InvertedIndex:
         print(f"loading term frequencies from {term_frqncy_file}")
         with open(term_frqncy_file, "rb") as f:
             self.term_frequencies = pickle.load(f)
+        print(f"loading doc lengths from {doc_lengths_file}")
+        with open(doc_lengths_file, "rb") as f:
+            self.doc_lengths = pickle.load(f)
         print("data successfully loaded")

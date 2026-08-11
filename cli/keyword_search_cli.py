@@ -32,7 +32,7 @@ def main() -> None:
     bm25_tf_parser.add_argument("doc_id", type=int, help="Document ID")
     bm25_tf_parser.add_argument("term", type=str, help="Term to get BM25 TF score for")
     bm25_tf_parser.add_argument("k1", type=float, nargs="?", default=InvertedIndex.BM25_K1, help="Tunable BM25 K1 parameter")
-
+    bm25_tf_parser.add_argument("b", type=float, nargs="?", default=InvertedIndex.BM25_B, help="Tunable BM25 b parameter")
     args = parser.parse_args()
     invIndex = InvertedIndex()
 
