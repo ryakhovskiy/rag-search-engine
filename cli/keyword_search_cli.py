@@ -33,6 +33,10 @@ def main() -> None:
     bm25_tf_parser.add_argument("term", type=str, help="Term to get BM25 TF score for")
     bm25_tf_parser.add_argument("k1", type=float, nargs="?", default=InvertedIndex.BM25_K1, help="Tunable BM25 K1 parameter")
     bm25_tf_parser.add_argument("b", type=float, nargs="?", default=InvertedIndex.BM25_B, help="Tunable BM25 b parameter")
+
+    bm25search_parser = subparsers.add_parser("bm25search", help="Search movies using full BM25 scoring")
+    bm25search_parser.add_argument("query", type=str, help="Search query")
+
     args = parser.parse_args()
     invIndex = InvertedIndex()
 
@@ -68,6 +72,12 @@ def main() -> None:
             invIndex.load()
             bm25tf = invIndex.get_bm25_tf(doc_id=args.doc_id, term=args.term, k1=args.k1)
             print(f"BM25 TF score of '{args.term}' in document '{args.doc_id}': {bm25tf:.2f}")
+        case "bm25search":
+            invIndex.load()
+            print(f"Searching for: {args.query}")
+            bm25 = invIndex.bm25_search(args.query)
+            for i in range(0, len(bm25)):
+                print(f"{i}. {bm25[i]}")
         case _:
             parser.print_help()
 

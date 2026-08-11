@@ -97,6 +97,28 @@ class InvertedIndex:
         return saturated_tf
 
 
+    def bm25(self, doc_id: int, token: str) -> float:
+        bm25tf = self.get_bm25_tf(doc_id=doc_id, term=token)
+        bm25idf = self.get_bm25_idf(term=token)
+        return bm25tf * bm25idf
+
+    def bm25_search(self, term: str, limit: int = 5) -> list[str]:
+        stopwords = load_stopwords()
+        term_tokens = tokenize_text(term, stopwords=stopwords)
+        scores: dict[int, float] = dict()
+        for token in term_tokens:
+            docs = self.index.get(token, [])
+            for doc_id in docs:
+                score = self.bm25(doc_id=doc_id, token=token)
+                scores[doc_id] = scores.get(doc_id, 0.0) + score
+        topX = dict(sorted(scores.items(), key=lambda item: item[1], reverse=True)[:limit])
+        res = []
+        for k in topX.keys():
+            title = self.docmap[k]
+            res.append(f"({k}) {title} - Score: {topX[k]:.2f}")
+        return res
+
+
     def build(self):
         stopwords = load_stopwords()
         movies = load_movies()
