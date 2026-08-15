@@ -90,3 +90,51 @@ def load_stopwords(path: str = "data/stopwords.txt") -> list[str]:
 
 def stem_term(term: str) -> str:
     return stemmer.stem(term)
+
+def split_text_to_words(text) -> list[str]:
+    if not text or len(text.strip()) == 0:
+        return []
+    return text.split(" ")
+
+
+def split_text_to_sentences(text) -> list[str]:
+    if not text or len(text) == 0:
+        return []
+    import re
+    regex = r"(?<=[.!?])\s+"
+    return re.split(regex, text)
+
+
+def chunk(words: list[str], chunk_size: int = 200, overlap: int = 0) -> list[str]:
+    return chunk_with_split(split_text_to_words, " ".join(words), chunk_size=chunk_size, overlap=overlap)
+
+
+def chunk_with_split(split_function, text: str, chunk_size: int = 200, overlap: int = 0) -> list[str]:
+    if not text or len(text.strip()) == 0:
+        return []
+    if chunk_size == 0:
+        return [text]
+    if overlap >= chunk_size:
+        raise ValueError("overlap cannot be larger or equal to chunk_size")
+    words = split_function(text)
+    res = []
+    chunk = []
+
+    counter = 0
+    i = 0
+    while i < len(words):
+        word = words[i].strip()
+        if len(word) == 0:
+            i += 1
+            continue
+        if counter == chunk_size:
+            res.append(" ".join(chunk))
+            chunk = chunk[-overlap:] if overlap > 0 else []  # seed overlap into next chunk
+            counter = len(chunk)
+        chunk.append(word)
+        counter += 1
+        i += 1
+    if len(chunk) > 0:
+        res.append(" ".join(chunk))
+    return res
+    
