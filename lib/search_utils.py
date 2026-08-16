@@ -101,8 +101,15 @@ def split_text_to_sentences(text) -> list[str]:
     if not text or len(text) == 0:
         return []
     import re
+    text = text.strip()
+    if len(text) == 0:
+        return []
     regex = r"(?<=[.!?])\s+"
-    return re.split(regex, text)
+    regexed = re.split(regex, text)
+    if len(regexed) == 1 and regexed[0][-1:] not in ('?', '.', '!'):
+        return text
+    else:
+        return regexed
 
 
 def chunk(words: list[str], chunk_size: int = 200, overlap: int = 0) -> list[str]:
@@ -128,13 +135,17 @@ def chunk_with_split(split_function, text: str, chunk_size: int = 200, overlap: 
             i += 1
             continue
         if counter == chunk_size:
-            res.append(" ".join(chunk))
+            chk = " ".join(chunk).strip()
+            if len(chk) != 0:
+                res.append(chk)
             chunk = chunk[-overlap:] if overlap > 0 else []  # seed overlap into next chunk
             counter = len(chunk)
         chunk.append(word)
         counter += 1
         i += 1
     if len(chunk) > 0:
-        res.append(" ".join(chunk))
+        chk = " ".join(chunk).strip()
+        if len(chk) != 0:
+            res.append(chk)
     return res
     

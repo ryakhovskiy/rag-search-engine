@@ -8,7 +8,7 @@ from lib.semantic_search import search
 from lib.semantic_search import semantic_chunk
 from lib.search_utils import chunk
 from lib.chunked_semantic_search import embed_chunks
-
+from lib.chunked_semantic_search import search_chunks
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Semantic Search CLI")
@@ -25,6 +25,7 @@ def main() -> None:
     embed_qt.add_argument("query", type=str, help="Query text to generate embeddings")
 
     search_parser = subparsers.add_parser("search", help="Search using semantic similarity")
+    search_parser.add_argument("query", type=str, help="Query for the semantic search")
     search_parser.add_argument("--limit", type=int, default=5, help="Limit resultset")
 
     chunk_parser = subparsers.add_parser("chunk", help="Chunks document")
@@ -38,6 +39,10 @@ def main() -> None:
     schunk_parser.add_argument("--overlap", type=int, default=0, help="chunk overlap with the previuos chunk to preserve context")
 
     ec_parser = subparsers.add_parser("embed_chunks", help="Load or create chunked semantic embeddings")
+
+    search_chunked = subparsers.add_parser("search_chunked", help="Search using chunks of documents semantically")
+    search_chunked.add_argument("query", type=str, help="Query for the semantic search")
+    search_chunked.add_argument("--limit", type=int, default=5, help="Limit resultset")
 
     args = parser.parse_args()
     match args.command:
@@ -63,6 +68,8 @@ def main() -> None:
                 print(f"{i+1}. {res[i]}")
         case "embed_chunks":
             embed_chunks()
+        case "search_chunked":
+            search_chunks(args.query, args.limit)
         case _:
             parser.print_help()
 

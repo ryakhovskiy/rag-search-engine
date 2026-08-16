@@ -54,6 +54,52 @@ class ChunkedSemanticSearch(SemanticSearch):
             return self.build_chunk_embeddings(documents=documents)
 
 
+    def search_chunks(self, query: str, documents: list[dict], limit: int = 10):
+        print("search chunk")
+        self.documents = documents
+        query = query.strip()
+        from .semantic_search import cosine_similarity
+        query_embeddings = self.generate_embedding(query)
+        embeddings = self.load_or_create_chunk_embeddings(documents=self.documents)
+        c_similarities = []
+        for i in range(0, len(embeddings)):
+            emb = embeddings[i]
+            chunk_idx = i
+            metadata = self.chunk_metadata[chunk_idx]
+            movie_idx = metadata["movie_idx"]
+            score = cosine_similarity(emb, query_embeddings)
+            c_similarities.append({"chunk_idx": chunk_idx, "movie_idx": movie_idx, "score": score, "metadata": metadata})
+        best_matches = dict()
+        for csmlrt in c_similarities:
+            movie_idx = csmlrt["movie_idx"]
+            score = csmlrt["score"]
+            if movie_idx not in best_matches:
+                best_matches[movie_idx] = (score, csmlrt["metadata"])
+            else:
+                if best_matches[movie_idx][0] < score:
+                    best_matches[movie_idx] = (score, csmlrt["metadata"])
+        best_matches = dict(sorted(best_matches.items(), key=lambda item: item[1][0], reverse=True)[:limit])
+        rest: list[dict] = []
+        for doc_id in best_matches.keys():
+            score = best_matches[doc_id][0]
+            meta = best_matches[doc_id][1]
+            movie_idx = meta["movie_idx"]
+            id = self.documents[movie_idx]["id"]
+            rest.append({ "id": self.documents[movie_idx]["id"], "title": self.document_map[id]["title"], "description": self.document_map[id]["description"][:100], "score": score, "metadata": meta or {}, })
+        return rest
+
+
+
+def search_chunks(query: str, limit: int = 10):
+    from .search_utils import load_movies
+    docs = load_movies()
+    search = ChunkedSemanticSearch()
+    results = search.search_chunks(query=query, limit=limit, documents=docs)
+    for i in range(0, len(results)):
+        res = results[i]
+        print(f"\n{i+1}. {res["title"]} (score: {res["score"]:.4f})")
+        print(f"   {res["description"]}...")
+
 def embed_chunks():
     from .search_utils import load_movies
     docs = load_movies()
