@@ -44,10 +44,9 @@ class HybridSearch:
                     d["semantic_score"] = c["score"]
                     break
             if d.get("semantic_score", None):
-                hscore = self.hybrid_score(d["bm25_score"], d["semantic_score"], alpha)
-                d["hybrid_score"] = hscore
-            else:
                 d["hybrid_score"] = d["bm25_score"]
+            else:
+                d["hybrid_score"] = self.hybrid_score(d["bm25_score"], d["semantic_score"], alpha)
             res.append(d)
         topX = sorted(res, key=lambda x: x["hybrid_score"], reverse=True)[:limit]
         return topX
