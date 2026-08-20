@@ -77,7 +77,7 @@ def main() -> None:
             print(f"Searching for: {args.query}")
             bm25 = invIndex.bm25_search(args.query)
             for i in range(0, len(bm25)):
-                print(f"{i}. {bm25[i]}")
+                print(f"{i}. {bm25[i]["info"]}")
         case _:
             parser.print_help()
 

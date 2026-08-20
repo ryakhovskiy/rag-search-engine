@@ -55,7 +55,6 @@ class ChunkedSemanticSearch(SemanticSearch):
 
 
     def search_chunks(self, query: str, documents: list[dict], limit: int = 10):
-        print("search chunk")
         self.documents = documents
         query = query.strip()
         from .semantic_search import cosine_similarity

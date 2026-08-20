@@ -15,14 +15,21 @@ class InvertedIndex:
     CACHE_DIR = "cache"
     __index_file_path = os.path.join(CACHE_DIR, "index.pkl")
     __docmap_file_path = os.path.join(CACHE_DIR, "docmap.pkl")
+    __docdescrmap_file_path = os.path.join(CACHE_DIR, "docdescrmap.pkl")
     __term_frequencies_file_path = os.path.join(CACHE_DIR, "term_frequencies.pkl")
     __doc_lengths_file_path = os.path.join(CACHE_DIR, "doc_lengths.pkl")
 
     def __init__(self):
         self.index: dict[str, list[int]] = dict() # token -> document_ids
-        self.docmap: dict[int, str] = dict() # document_id -> tokens
+        self.docmap: dict[int, str] = dict() # document_id -> title
+        self.docdescrmap: dict[int, str] = dict() # document_id -> description
         self.term_frequencies: dict[int, Counter] = dict() # document_id -> Counter(token->count)
         self.doc_lengths: dict[int, int] = dict()
+
+    def build_index_if_not_exists(self):
+        if not os.path.exists(self.__index_file_path):
+            self.build()
+            self.save()
 
 
     def __get_avg_doc_length(self) -> float:
@@ -115,7 +122,8 @@ class InvertedIndex:
         res = []
         for k in topX.keys():
             title = self.docmap[k]
-            res.append(f"({k}) {title} - Score: {topX[k]:.2f}")
+            descr = self.docdescrmap[k]
+            res.append({"id": k, "title": title, "score": topX[k], "description": descr, "info": f"({k}) {title} - Score: {topX[k]:.4f}"})
         return res
 
 
@@ -134,6 +142,7 @@ class InvertedIndex:
             for token in text_tokens:
                 self.__add_document(id, token)
             self.docmap[id] = title
+            self.docdescrmap[id] = descr
             counter += 1
             if counter % 300 == 0:
                 print(f"index {counter}/{total} movies")
@@ -142,6 +151,7 @@ class InvertedIndex:
     
     def save(self, index_file: str = __index_file_path, 
              docmap_file: str = __docmap_file_path, 
+             docdescrmap_file: str = __docdescrmap_file_path,
              term_frqncy_file: str = __term_frequencies_file_path,
              doc_lengths_file: str = __doc_lengths_file_path) -> None:
         print(f"saving the index to disk to a file {index_file}")
@@ -150,6 +160,9 @@ class InvertedIndex:
         print(f"saving the index to disk to a file {docmap_file}")
         with open(docmap_file, "wb") as f:
             pickle.dump(self.docmap, f)
+        print(f"saving document descriptions to disk to a file {docdescrmap_file}")
+        with open(docdescrmap_file, "wb") as f:
+            pickle.dump(self.docdescrmap, f)
         print(f"saving the term frequencies index to disk to a file {term_frqncy_file}")
         with open(term_frqncy_file, "wb") as f:
             pickle.dump(self.term_frequencies, f)
@@ -160,19 +173,23 @@ class InvertedIndex:
 
     def load(self, index_file: str = __index_file_path, 
              docmap_file: str = __docmap_file_path, 
+             docdescrmap_file: str = __docdescrmap_file_path, 
              term_frqncy_file: str = __term_frequencies_file_path,
              doc_lengths_file: str = __doc_lengths_file_path) -> None:
         if not os.path.isfile(index_file):
-            print(f"index file not found {index_file}, run 'build' command first")
+            print(f"index file not found {index_file}, run 'keyword_search_cli.py build' command first")
             return
         if not os.path.isfile(docmap_file):
-            print(f"docmap file not found {docmap_file}, run 'build' command first")
+            print(f"docmap file not found {docmap_file}, run 'keyword_search_cli.py build' command first")
+            return
+        if not os.path.isfile(docdescrmap_file):
+            print(f"docdescrmap file not found {docdescrmap_file}, run 'keyword_search_cli.py build' command first")
             return
         if not os.path.isfile(term_frqncy_file):
-            print(f"term frequency file not found {term_frqncy_file}, run 'build' command first")
+            print(f"term frequency file not found {term_frqncy_file}, run 'keyword_search_cli.py build' command first")
             return
         if not os.path.isfile(doc_lengths_file):
-            print(f"doc lengths file not found {doc_lengths_file}, run 'build' command first")
+            print(f"doc lengths file not found {doc_lengths_file}, run 'keyword_search_cli.py build' command first")
             return
         print(f"loading index from {index_file}")
         with open(index_file, "rb") as f:
@@ -180,6 +197,9 @@ class InvertedIndex:
         print(f"loading docmap from {docmap_file}")
         with open(docmap_file, "rb") as f:
             self.docmap = pickle.load(f)
+        print(f"loading docdescrmap from {docdescrmap_file}")
+        with open(docdescrmap_file, "rb") as f:
+            self.docdescrmap = pickle.load(f)
         print(f"loading term frequencies from {term_frqncy_file}")
         with open(term_frqncy_file, "rb") as f:
             self.term_frequencies = pickle.load(f)
