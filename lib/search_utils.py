@@ -107,7 +107,7 @@ def split_text_to_sentences(text) -> list[str]:
     regex = r"(?<=[.!?])\s+"
     regexed = re.split(regex, text)
     if len(regexed) == 1 and regexed[0][-1:] not in ('?', '.', '!'):
-        return text
+        return [text]
     else:
         return regexed
 

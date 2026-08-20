@@ -43,8 +43,11 @@ class HybridSearch:
                 if c["id"] == item["id"]:
                     d["semantic_score"] = c["score"]
                     break
-            hscore = self.hybrid_score(d["bm25_score"], d["semantic_score"], alpha)
-            d["hybrid_score"] = hscore
+            if d.get("semantic_score", None):
+                hscore = self.hybrid_score(d["bm25_score"], d["semantic_score"], alpha)
+                d["hybrid_score"] = hscore
+            else:
+                d["hybrid_score"] = d["bm25_score"]
             res.append(d)
         topX = sorted(res, key=lambda x: x["hybrid_score"], reverse=True)[:limit]
         return topX
@@ -91,8 +94,8 @@ def normalize_min_max(scores: list[float]) -> list[float]:
     if len(scores) == 1:
         return [1.0]
     
-    min = sys.float_info.max
-    max = sys.float_info.min
+    min = float("inf")
+    max = float("-inf")
 
     for score in scores:
         if score > max:
