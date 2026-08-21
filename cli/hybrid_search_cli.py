@@ -3,6 +3,9 @@ import argparse
 from lib.hybrid_search import normalize_min_max
 from lib.hybrid_search import weighted_search
 from lib.hybrid_search import rrf_search
+from lib.llm_client import spell_check
+from lib.llm_client import rewrite_query
+from lib.llm_client import expand_query
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Hybrid Search CLI")
@@ -20,6 +23,7 @@ def main() -> None:
     rrf_parser = subparsers.add_parser("rrf-search", help="Verifies the model for Semantic Search Embeddings loaded")
     rrf_parser.add_argument("query", type=str, help="Terms to search for")
     rrf_parser.add_argument("-k", type=int, default=60, help="controls how much more weight to give to higher-ranked results vs. lower-ranked ones")
+    rrf_parser.add_argument("--enhance", type=str, choices=["spell", "rewrite", "expand"], help="Query enhancement method (spell, rewrite, expand)")
     rrf_parser.add_argument("--limit", type=int, default=5, help="Limit the resultset")
 
     args = parser.parse_args()
@@ -31,7 +35,20 @@ def main() -> None:
         case "weighted-search":
             weighted_search(args.query, args.alpha, args.limit)
         case "rrf-search":
-            rrf_search(args.query, args.k, args.limit)
+            query = args.query
+            match args.enhance:
+                case "spell":
+                    query = spell_check(args.query)
+                    print(f"Enhanced query ({args.enhance}): '{args.query}' -> '{query}'\n")
+                case "rewrite":
+                    query = rewrite_query(args.query)
+                    print(f"Enhanced query ({args.enhance}): '{args.query}' -> '{query}'\n")
+                case "expand":
+                    query = expand_query(args.query)
+                    print(f"Enhanced query ({args.enhance}): '{args.query}' -> '{query}'\n")
+                case _:
+                    pass
+            rrf_search(query.strip(), args.k, args.limit)
         case _:
             parser.print_help()
 

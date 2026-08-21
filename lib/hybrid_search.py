@@ -58,6 +58,8 @@ class HybridSearch:
                 data["rrf_score"] = bm25_rrf
             else:
                 data["rrf_score"] = semantic_rrf
+            if "I.Q." in data["title"] or "I.Q." in data["description"]:
+                print(f"---> found IQ: {data}")
 
         return sorted(res.values(), key=lambda x: x['rrf_score'], reverse=True)[:limit]
 
