@@ -2,6 +2,7 @@ import argparse
 
 from lib.hybrid_search import normalize_min_max
 from lib.hybrid_search import weighted_search
+from lib.hybrid_search import rrf_search
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Hybrid Search CLI")
@@ -17,18 +18,20 @@ def main() -> None:
     ws_parser.add_argument("--limit", type=int, default=5, help="Limit the resultset")
 
     rrf_parser = subparsers.add_parser("rrf-search", help="Verifies the model for Semantic Search Embeddings loaded")
-    rrf_parser.add_argument("--enhance", type=str, choices=["spell"], help="Query enhancement method",)
+    rrf_parser.add_argument("query", type=str, help="Terms to search for")
+    rrf_parser.add_argument("-k", type=int, default=60, help="controls how much more weight to give to higher-ranked results vs. lower-ranked ones")
+    rrf_parser.add_argument("--limit", type=int, default=5, help="Limit the resultset")
 
     args = parser.parse_args()
     match args.command:
-        case "rrf-search":
-            print("rrf-search")
         case "normalize":
             normalized = normalize_min_max(args.scores)
             for score in normalized:
                 print(f"* {score:.4f}")
         case "weighted-search":
             weighted_search(args.query, args.alpha, args.limit)
+        case "rrf-search":
+            rrf_search(args.query, args.k, args.limit)
         case _:
             parser.print_help()
 

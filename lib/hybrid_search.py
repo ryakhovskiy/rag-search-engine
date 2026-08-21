@@ -24,11 +24,42 @@ class HybridSearch:
     def weighted_search(self, query: str, alpha: float, limit: int = 5) -> list[dict]:
         raise NotImplementedError("Weighted hybrid search is not implemented yet.")
 
-    def rrf_search(self, query: str, k: int, limit: int = 10) -> list[dict]:
-        raise NotImplementedError("RRF hybrid search is not implemented yet.")
+    def rrf_score(self, rank: int, k: int = 60) -> float:
+        return 1 / (k + rank)
 
     def hybrid_score(self, bm25_score: float, semantic_score: float, alpha: float = 0.5) -> float:
         return alpha * bm25_score + (1 - alpha) * semantic_score
+
+    def rrf_search(self, query: str, k: int = 60, limit: int = 5) -> list[dict]:
+        wlimit = limit * 500
+        bm25_res = self._bm25_search(query=query, limit=wlimit)
+        semantic_res = self.semantic_search.search_chunks(query=query, limit=wlimit, documents=self.documents)
+        res = dict()
+        for rank, item in enumerate(bm25_res, start=1):
+            rrf = self.rrf_score(rank, k=k)
+            res[item["id"]] = {"id": item["id"], "title": item["title"], "bm25_rank": rank, "description": item["description"], "bm25_score": item["score"], "bm25_rrf": rrf}
+        for rank, item in enumerate(semantic_res, start=1):
+            rrf = self.rrf_score(rank, k=k)
+            if res.get(item["id"], None):
+                data = res[item["id"]]
+                data["semantic_rank"] = rank
+                data["semantic_rrf"] = rrf
+                data["semantic_score"] = item["score"]
+            else:
+                res[item["id"]] = {"id": item["id"], "title": item["title"], "semantic_rank": rank, "description": item["description"], "semantic_score": item["score"], "semantic_rrf": rrf}
+
+        for id in res.keys():
+            data = res[id]
+            bm25_rrf = data.get("bm25_rrf", None)
+            semantic_rrf = data.get("semantic_rrf", None)
+            if bm25_rrf is not None and semantic_rrf is not None:
+                data["rrf_score"] = bm25_rrf + semantic_rrf
+            elif bm25_rrf:
+                data["rrf_score"] = bm25_rrf
+            else:
+                data["rrf_score"] = semantic_rrf
+
+        return sorted(res.values(), key=lambda x: x['rrf_score'], reverse=True)[:limit]
 
     def weighted_search(self, query: str, alpha: float = 0.5, limit: int=5):
         wlimit = limit * 500
@@ -51,6 +82,17 @@ class HybridSearch:
         topX = sorted(res, key=lambda x: x["hybrid_score"], reverse=True)[:limit]
         return topX
 
+
+def rrf_search(query: str, k: int = 60, limit: int = 5) -> list[dict]:
+    print(f"rrf search for '{query}', k={k}, limit={limit}")
+    search = HybridSearch()
+    res = search.rrf_search(query=query, k=k, limit=limit)
+    for i in range(len(res)):
+        print(f"{i+1}. {res[i]['title']}")
+        print(f"  RRF Score: {res[i]['rrf_score']:.3f}")
+        print(f"  BM25 Rank: {res[i].get('bm25_rank', 'N/A')}, Semantic Rank: {res[i].get('semantic_rank', 'N/A')}")
+        print(f"{res[i]['description'][:100]}")
+    return res
 
 def weighted_search(query: str, alpha: float = 0.5, limit: int=5):
     hs = HybridSearch()
