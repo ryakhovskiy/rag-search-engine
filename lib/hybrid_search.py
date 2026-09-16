@@ -86,7 +86,7 @@ class HybridSearch:
 
 def rrf_search(query: str, k: int = 60, limit: int = 5, rerank_method: str = None) -> list[dict]:
     print(f"rrf search for '{query}', k={k}, limit={limit}, rerank-method: '{rerank_method}'")
-    if rerank_method == "individual":
+    if rerank_method in ["individual", "batch"]:
         limit *= 5
     search = HybridSearch()
     res = search.rrf_search(query=query, k=k, limit=limit)
@@ -98,14 +98,27 @@ def rrf_search(query: str, k: int = 60, limit: int = 5, rerank_method: str = Non
             item["rerank_score"] = float(score)
             counter += 1
         sorted(res, key=lambda x: x["rerank_score"], reverse=True)[:limit // 5]
+    if rerank_method == "batch":
+        print("batch")
+        ranks = run_batch_reranking(res, query)
+        for i in range(0, len(ranks)):
+            res[i]["rerank_score"] = float(ranks[i])
+        sorted(res, key=lambda x: x["rerank_score"], reverse=True)[:limit // 5]
 
     for i in range(len(res)):
         print(f"{i+1}. {res[i]['title']}")
-        print(f"  Re-rank Score: {res[i]['rerank_score']:.3f}/10")
+        if "rerank_score" in res[i]:
+            print(f"  Re-rank Score: {res[i]['rerank_score']:.3f}/10")
         print(f"  RRF Score: {res[i]['rrf_score']:.3f}")
         print(f"  BM25 Rank: {res[i].get('bm25_rank', 'N/A')}, Semantic Rank: {res[i].get('semantic_rank', 'N/A')}")
         print(f"{res[i]['description'][:100]}")
     return res
+
+
+def run_batch_reranking(docs: list[dict], query: str) -> str:
+    from .llm_client import rerank_doc_batch
+    ranks = rerank_doc_batch(docs, query)
+    return ranks
 
 
 def run_reranking(document: dict, query: str) -> int:

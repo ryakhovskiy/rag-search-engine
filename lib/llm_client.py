@@ -4,6 +4,7 @@ from openai import OpenAI
 from openai import APIStatusError
 from openai import APIConnectionError
 import time
+import json
 
 
 load_dotenv()
@@ -85,6 +86,32 @@ Output ONLY the number in your response, no other text or explanation.
 
 Score:"""
     return __exec_and_llm_response(prompt=prompt)
+
+
+def rerank_doc_batch(docs: list[dict], query: str) -> list[int]:
+    prompt = f"""Rank the movies listed below by relevance to the following search query.
+Query: "{query}"
+Movies:
+{docs}
+
+Return the movie IDs in order of relevance, best match first.
+
+Your response must be a raw JSON array of integers.
+Do not wrap the JSON in Markdown. Do not use a ```json code block.
+Do not include any explanatory text.
+
+For example:
+[75, 12, 34, 2, 1]
+
+Ranking:"""
+
+    res = __exec_and_llm_response(prompt=prompt)
+    try:
+        ints = json.loads(res)
+    except (json.JSONDecodeError, ValueError) as e:
+        print(f"error converting the LLM response '{res}' to list of integers: {e}")
+        return []
+
 
 def __exec_and_llm_response(prompt: str) -> str:
     messages = [{"role": "user", "content": prompt}]
