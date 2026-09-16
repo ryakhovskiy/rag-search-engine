@@ -25,6 +25,7 @@ def main() -> None:
     rrf_parser.add_argument("-k", type=int, default=60, help="controls how much more weight to give to higher-ranked results vs. lower-ranked ones")
     rrf_parser.add_argument("--enhance", type=str, choices=["spell", "rewrite", "expand"], help="Query enhancement method (spell, rewrite, expand)")
     rrf_parser.add_argument("--limit", type=int, default=5, help="Limit the resultset")
+    rrf_parser.add_argument("--rerank-method", type=str, choices=["individual"], help="Optionally provide re-ranking method (individual)")
 
     args = parser.parse_args()
     match args.command:
@@ -48,7 +49,7 @@ def main() -> None:
                     print(f"Enhanced query ({args.enhance}): '{args.query}' -> '{query}'\n")
                 case _:
                     pass
-            rrf_search(query.strip(), args.k, args.limit)
+            rrf_search(query.strip(), args.k, args.limit, args.rerank_method)
         case _:
             parser.print_help()
 

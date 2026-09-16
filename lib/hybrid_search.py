@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 
 from .inverted_index import InvertedIndex
 from .chunked_semantic_search import ChunkedSemanticSearch
@@ -58,8 +59,6 @@ class HybridSearch:
                 data["rrf_score"] = bm25_rrf
             else:
                 data["rrf_score"] = semantic_rrf
-            if "I.Q." in data["title"] or "I.Q." in data["description"]:
-                print(f"---> found IQ: {data}")
 
         return sorted(res.values(), key=lambda x: x['rrf_score'], reverse=True)[:limit]
 
@@ -85,16 +84,35 @@ class HybridSearch:
         return topX
 
 
-def rrf_search(query: str, k: int = 60, limit: int = 5) -> list[dict]:
-    print(f"rrf search for '{query}', k={k}, limit={limit}")
+def rrf_search(query: str, k: int = 60, limit: int = 5, rerank_method: str = None) -> list[dict]:
+    print(f"rrf search for '{query}', k={k}, limit={limit}, rerank-method: '{rerank_method}'")
+    if rerank_method == "individual":
+        limit *= 5
     search = HybridSearch()
     res = search.rrf_search(query=query, k=k, limit=limit)
+    if rerank_method == "individual":
+        for item in res:
+            print(f"submitting reranking for movie {item['title']}: rrf: {item['rrf_score']}, sem_r: {item['semantic_rank']}, bm25_r: {item['bm25_rank']}")
+            score = run_reranking(item, query)
+            item["reranking_score"] = score
+            print(f"ranked as {score}")
+            print("sleeping 3 sec...")
+            time.sleep(3)
+        sorted(res, key=lambda x: x["reranking_score"], reverse=True)[:limit/5]
+
     for i in range(len(res)):
         print(f"{i+1}. {res[i]['title']}")
+        print(f"  Re-rank Score: {res[i]['rerank_score']:.3f}/10")
         print(f"  RRF Score: {res[i]['rrf_score']:.3f}")
         print(f"  BM25 Rank: {res[i].get('bm25_rank', 'N/A')}, Semantic Rank: {res[i].get('semantic_rank', 'N/A')}")
         print(f"{res[i]['description'][:100]}")
     return res
+
+
+def run_reranking(document: dict, query: str) -> int:
+    from .llm_client import rerank_doc
+    return rerank_doc(doc=document, query=query)
+
 
 def weighted_search(query: str, alpha: float = 0.5, limit: int=5):
     hs = HybridSearch()
