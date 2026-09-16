@@ -86,7 +86,7 @@ class HybridSearch:
 
 def rrf_search(query: str, k: int = 60, limit: int = 5, rerank_method: str = None) -> list[dict]:
     print(f"rrf search for '{query}', k={k}, limit={limit}, rerank-method: '{rerank_method}'")
-    if rerank_method in ["individual", "batch"]:
+    if rerank_method is not None and len(rerank_method) > 0:
         limit *= 5
     search = HybridSearch()
     res = search.rrf_search(query=query, k=k, limit=limit)
@@ -97,13 +97,25 @@ def rrf_search(query: str, k: int = 60, limit: int = 5, rerank_method: str = Non
             score = run_reranking(item, query)
             item["rerank_score"] = float(score)
             counter += 1
-        sorted(res, key=lambda x: x["rerank_score"], reverse=True)[:limit // 5]
+        res = sorted(res, key=lambda x: x["rerank_score"], reverse=True)[:limit // 5]
     if rerank_method == "batch":
         print("batch")
         ranks = run_batch_reranking(res, query)
         for i in range(0, len(ranks)):
             res[i]["rerank_score"] = float(ranks[i])
-        sorted(res, key=lambda x: x["rerank_score"], reverse=True)[:limit // 5]
+        res = sorted(res, key=lambda x: x["rerank_score"], reverse=True)[:limit // 5]
+    if rerank_method == "cross_encoder":
+        pairs = list()
+        for doc in res:
+            pairs.append([query, f"{doc.get('title', '')} - {doc.get('document', '')}"])
+        from sentence_transformers import CrossEncoder
+        cross_encoder = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L2-v2", device="cpu")
+        ranks = cross_encoder.predict(pairs)
+        print(f"-- scores: {ranks}")
+        for i in range(0, len(ranks)):
+            res[i]["rerank_score"] = float(ranks[i])
+        res = sorted(res, key=lambda x: x["rerank_score"], reverse=True)[:limit // 5]
+
 
     for i in range(len(res)):
         print(f"{i+1}. {res[i]['title']}")
