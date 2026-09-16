@@ -91,14 +91,13 @@ def rrf_search(query: str, k: int = 60, limit: int = 5, rerank_method: str = Non
     search = HybridSearch()
     res = search.rrf_search(query=query, k=k, limit=limit)
     if rerank_method == "individual":
+        counter = 1
         for item in res:
-            print(f"submitting reranking for movie {item['title']}: rrf: {item['rrf_score']}, sem_r: {item['semantic_rank']}, bm25_r: {item['bm25_rank']}")
+            print(f"step {counter}/{len(res)}: submitting reranking for movie {item['title']}: rrf: {item['rrf_score']}, sem_r: {item['semantic_rank']}, bm25_r: {item['bm25_rank']}")
             score = run_reranking(item, query)
-            item["reranking_score"] = score
-            print(f"ranked as {score}")
-            print("sleeping 3 sec...")
-            time.sleep(3)
-        sorted(res, key=lambda x: x["reranking_score"], reverse=True)[:limit/5]
+            item["rerank_score"] = float(score)
+            counter += 1
+        sorted(res, key=lambda x: x["rerank_score"], reverse=True)[:limit // 5]
 
     for i in range(len(res)):
         print(f"{i+1}. {res[i]['title']}")
@@ -111,7 +110,15 @@ def rrf_search(query: str, k: int = 60, limit: int = 5, rerank_method: str = Non
 
 def run_reranking(document: dict, query: str) -> int:
     from .llm_client import rerank_doc
-    return rerank_doc(doc=document, query=query)
+    counter = 0
+    while counter < 3:
+        rank = rerank_doc(doc=document, query=query)
+        if rank.isdigit():
+            return rank
+        else:
+            counter += 1
+            print(f"llm call failed: '{rank}', trying again {counter}/3")
+    return 0
 
 
 def weighted_search(query: str, alpha: float = 0.5, limit: int=5):

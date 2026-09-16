@@ -1,6 +1,10 @@
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
+from openai import APIStatusError
+from openai import APIConnectionError
+import time
+
 
 load_dotenv()
 
@@ -65,7 +69,7 @@ User query: "{query}"
     return __exec_and_llm_response(prompt)
 
 
-def rerank_doc(doc: dict, query: str) -> int:
+def rerank_doc(doc: dict, query: str) -> str:
     prompt = f"""Rate how well this movie matches the search query.
 
 Query: "{query}"
@@ -80,13 +84,29 @@ Rate 0-10 (10 = perfect match).
 Output ONLY the number in your response, no other text or explanation.
 
 Score:"""
-    return int(__exec_and_llm_response(prompt=prompt))
+    return __exec_and_llm_response(prompt=prompt)
 
 def __exec_and_llm_response(prompt: str) -> str:
     messages = [{"role": "user", "content": prompt}]
-    model = "openrouter/free"
-    response = client.chat.completions.create(messages=messages, model=model)
-    return response.choices[0].message.content
+    #model = "openrouter/free"
+    model = "~deepseek/deepseek-v4-flash-latest"
+
+    try:
+        response = client.chat.completions.create(messages=messages, model=model)
+        return response.choices[0].message.content.strip()
+    except APIStatusError as e:
+        print(f"API Error (Status Code {e.status_code}): {e.message}")
+        return f"Error: API returned status code {e.status_code}"
+    except APIConnectionError as e:
+        print(f"Connection Error: {e.__cause__}")
+        return "Error: Could not connect to the server"
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return "Error: An unexpected error occurred"
+    finally:
+        if model == "openrouter/free":
+            print(f"sleeping to avoid llm rate-limiting for subsequent calls for model {model}")
+            time.sleep(3)
 
 def test():
     messages = [
