@@ -99,7 +99,7 @@ def rrf_search(query: str, k: int = 60, limit: int = 5, rerank_method: str = Non
             counter += 1
         res = sorted(res, key=lambda x: x["rerank_score"], reverse=True)[:limit // 5]
     if rerank_method == "batch":
-        print("batch")
+        print("running batch rrf search")
         ranks = run_batch_reranking(res, query)
         for i in range(0, len(ranks)):
             res[i]["rerank_score"] = float(ranks[i])
@@ -116,7 +116,12 @@ def rrf_search(query: str, k: int = 60, limit: int = 5, rerank_method: str = Non
             res[i]["rerank_score"] = float(ranks[i])
         res = sorted(res, key=lambda x: x["rerank_score"], reverse=True)[:limit // 5]
 
+    # skip printing
+    # print_rrf_search_results(res)
+    return res
 
+
+def print_rrf_search_results(res):
     for i in range(len(res)):
         print(f"{i+1}. {res[i]['title']}")
         if "rerank_score" in res[i]:
@@ -124,7 +129,6 @@ def rrf_search(query: str, k: int = 60, limit: int = 5, rerank_method: str = Non
         print(f"  RRF Score: {res[i]['rrf_score']:.3f}")
         print(f"  BM25 Rank: {res[i].get('bm25_rank', 'N/A')}, Semantic Rank: {res[i].get('semantic_rank', 'N/A')}")
         print(f"{res[i]['description'][:100]}")
-    return res
 
 
 def run_batch_reranking(docs: list[dict], query: str) -> str:
