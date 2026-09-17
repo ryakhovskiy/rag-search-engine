@@ -113,10 +113,35 @@ Ranking:"""
         return []
 
 
+def evaluate_results(query: str, formatted_results: list[str]) -> list[int]:
+    prompt = f"""Rate how relevant each result is to this query on a 0-3 scale:
+
+Query: "{query}"
+
+Results:
+{chr(10).join(formatted_results)}
+
+Scale:
+- 3: Highly relevant
+- 2: Relevant
+- 1: Marginally relevant
+- 0: Not relevant
+
+Do NOT give any numbers other than 0, 1, 2, or 3.
+
+Return ONLY the scores in the same order you were given the documents.
+Return a valid JSON list, nothing else. For example:
+[2, 0, 3, 2, 0, 1]"""
+    resp = __exec_and_llm_response(prompt)
+    print(f"--> DEBUG: LLM-RESPONSE='{resp}'")
+    ints = json.loads(resp)
+    return ints
+
+
 def __exec_and_llm_response(prompt: str) -> str:
     messages = [{"role": "user", "content": prompt}]
-    #model = "openrouter/free"
-    model = "~deepseek/deepseek-v4-flash-latest"
+    model = "openrouter/free"
+    #model = "~deepseek/deepseek-v4-flash-latest"
 
     try:
         response = client.chat.completions.create(messages=messages, model=model)

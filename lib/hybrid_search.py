@@ -84,12 +84,15 @@ class HybridSearch:
         return topX
 
 
-def rrf_search(query: str, k: int = 60, limit: int = 5, rerank_method: str = None) -> list[dict]:
-    print(f"rrf search for '{query}', k={k}, limit={limit}, rerank-method: '{rerank_method}'")
+def rrf_search(query: str, k: int = 60, limit: int = 5, rerank_method: str = None, llm_evaluate: bool = False) -> list[dict]:
+    print(f"rrf search for '{query}', k={k}, limit={limit}, rerank-method: '{rerank_method}', llm-evaluation: {llm_evaluate}")
     if rerank_method is not None and len(rerank_method) > 0:
         limit *= 5
     search = HybridSearch()
     res = search.rrf_search(query=query, k=k, limit=limit)
+    print_rrf_search_results_debug_sorted(res, 'bm25_score')
+    print_rrf_search_results_debug_sorted(res, 'semantic_score')
+    print_rrf_search_results_debug_sorted(res, 'rrf_score')
     if rerank_method == "individual":
         counter = 1
         for item in res:
@@ -111,14 +114,38 @@ def rrf_search(query: str, k: int = 60, limit: int = 5, rerank_method: str = Non
         from sentence_transformers import CrossEncoder
         cross_encoder = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L2-v2", device="cpu")
         ranks = cross_encoder.predict(pairs)
-        print(f"-- scores: {ranks}")
         for i in range(0, len(ranks)):
             res[i]["rerank_score"] = float(ranks[i])
         res = sorted(res, key=lambda x: x["rerank_score"], reverse=True)[:limit // 5]
-
+    print_rrf_search_results_debug_sorted(res, 'rerank_score')
+    if llm_evaluate:
+        from .llm_client import evaluate_results
+        formatted_res = format_results_for_llm_evaluation(res)
+        scores = evaluate_results(query, formatted_res)
+        for i, item in enumerate(res, start=0):
+            print(f"{i+1}. {item['title']}: {scores[i]}/3")
     # skip printing
     # print_rrf_search_results(res)
     return res
+
+
+def format_results_for_llm_evaluation(res: dict) -> list[str]:
+    return [x['title'] + ' - ' + x['description'] for x in res]
+
+
+def print_rrf_search_results_debug_sorted(res, sort_key: str):
+    sorted_res = sorted(res, key=lambda x: x.get(sort_key, 0), reverse=True)
+    col_w = max((len(item['title']) for item in sorted_res), default=10) + 5
+    sep = '=' * (col_w + 50)
+    print(sep)
+    print(f"rrf search resultset: {len(res)} items. Sorted by {sort_key}")
+    for i, item in enumerate(sorted_res, start=1):
+        title = f"{i}: {item['title']}:".ljust(col_w)
+        bm25 = item.get('bm25_score') or 0.0
+        sem  = item.get('semantic_score') or 0.0
+        rrf  = item.get('rrf_score') or 0.0
+        print(f"{title}  BM25: {bm25:.4f}  SEM: {sem:.4f}  RRF: {rrf:.4f}")
+    print(sep)
 
 
 def print_rrf_search_results(res):

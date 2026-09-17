@@ -26,6 +26,7 @@ def main() -> None:
     rrf_parser.add_argument("--enhance", type=str, choices=["spell", "rewrite", "expand"], help="Query enhancement method (spell, rewrite, expand)")
     rrf_parser.add_argument("--limit", type=int, default=5, help="Limit the resultset")
     rrf_parser.add_argument("--rerank-method", type=str, choices=["individual", "batch", "cross_encoder"], help="Optionally provide re-ranking method (individual)")
+    rrf_parser.add_argument("--evaluate", action='store_true', help="Use LLM-as-a-Judge to evaluate search results.\n\t3 - highly relevant\n\t2 - relevant\n\t1 - marginally relevant\n\t0 - not relevant\n")
 
     args = parser.parse_args()
     match args.command:
@@ -37,6 +38,7 @@ def main() -> None:
             weighted_search(args.query, args.alpha, args.limit)
         case "rrf-search":
             query = args.query
+            print(f"searching for query: {query}")
             match args.enhance:
                 case "spell":
                     query = spell_check(args.query)
@@ -49,7 +51,9 @@ def main() -> None:
                     print(f"Enhanced query ({args.enhance}): '{args.query}' -> '{query}'\n")
                 case _:
                     pass
-            rrf_search(query.strip(), args.k, args.limit, args.rerank_method)
+            if args.query != query:
+                print(f"query enhance method: '{args.enhance}'; enhanced query: '{query}'")
+            rrf_search(query.strip(), args.k, args.limit, args.rerank_method, args.evaluate)
         case _:
             parser.print_help()
 
