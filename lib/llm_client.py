@@ -5,6 +5,7 @@ from openai import APIStatusError
 from openai import APIConnectionError
 import time
 import json
+import base64
 
 
 load_dotenv()
@@ -219,13 +220,37 @@ Answer:"""
     return __exec_and_llm_response(prompt)
     
 
+def rewrite_query_based_on_image(mime, img: bytes, query: str):
+    system_prompt = """Given the included image and text query, rewrite the text query to improve search results from a movie database. Make sure to:
+        - Synthesize visual and textual information
+        - Focus on movie-specific details (actors, scenes, style, etc.)
+        - Return only the rewritten query, without any additional commentary"""
+    
+    data_url = f"data:{mime};base64,{base64.b64encode(img).decode()}"
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": system_prompt.strip()},
+                {"type": "image_url", "image_url": {"url": data_url}},
+                {"type": "text", "text": query.strip()},
+            ],
+        }
+    ]
+    return __exec_and_llm_response_base(messages=messages, model="openrouter/free")
+
+
 def __exec_and_llm_response(prompt: str) -> str:
     messages = [{"role": "user", "content": prompt}]
     model = "openrouter/free"
     #model = "~deepseek/deepseek-v4-flash-latest"
+    return __exec_and_llm_response_base(messages=messages, model=model)
 
+
+def __exec_and_llm_response_base(messages: list[dict[str, str]], model: str) -> str:
     try:
         response = client.chat.completions.create(messages=messages, model=model)
+        print(f"Total tokens: {response.usage.total_tokens}")
         return response.choices[0].message.content.strip()
     except APIStatusError as e:
         print(f"API Error (Status Code {e.status_code}): {e.message}")
@@ -240,6 +265,7 @@ def __exec_and_llm_response(prompt: str) -> str:
         if model == "openrouter/free":
             print(f"sleeping to avoid llm rate-limiting for subsequent calls for model {model}")
             time.sleep(3)
+
 
 def test():
     messages = [
