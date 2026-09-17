@@ -172,10 +172,57 @@ Provide a comprehensive 3–4 sentence answer that combines information from mul
     return __exec_and_llm_response(prompt)
 
 
+def run_citations_query(query: str, formatted_docs: str) -> str:
+    prompt = f"""Answer the query below and give information based on the provided documents.
+
+The answer should be tailored to users of Webflyx, a movie streaming service.
+If not enough information is available to provide a good answer, say so, but give the best answer possible while citing the sources available.
+
+Query: {query}
+
+Documents:
+{formatted_docs}
+
+Instructions:
+- Provide a comprehensive answer that addresses the query
+- Cite sources in the format [1], [2], etc. when referencing information
+- If sources disagree, mention the different viewpoints
+- If the answer isn't in the provided documents, say "I don't have enough information"
+- Be direct and informative
+
+Answer:"""
+    return __exec_and_llm_response(prompt)
+
+
+def run_question_query(question: str, formatted_docs: str) -> str:
+    prompt = f"""Answer the user's question based on the provided movies that are available on Webflyx, a streaming service.
+
+Question: {question}
+
+Documents:
+{formatted_docs}
+
+Instructions:
+- Answer questions directly and concisely
+- Be casual and conversational
+- Don't be cringe or hype-y
+- Talk like a normal person would in a chat conversation
+- No follow-up questions, just straight answer based on the provided context
+
+Question/Answer Example:
+Q: Who are the main characters in movie X
+A: Main characters of the movie X are 1. Alan, 2. Ian, 3. Michael
+
+Provide answers in english language.
+
+Answer:"""
+    return __exec_and_llm_response(prompt)
+    
+
 def __exec_and_llm_response(prompt: str) -> str:
     messages = [{"role": "user", "content": prompt}]
-    #model = "openrouter/free"
-    model = "~deepseek/deepseek-v4-flash-latest"
+    model = "openrouter/free"
+    #model = "~deepseek/deepseek-v4-flash-latest"
 
     try:
         response = client.chat.completions.create(messages=messages, model=model)
