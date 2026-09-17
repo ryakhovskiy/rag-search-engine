@@ -24,10 +24,12 @@ def main() -> None:
         relevant_retrieved = len(retrieved_titles & set(relevant_docs))
         precision = relevant_retrieved / len(retrieved_docs) if retrieved_docs else 0.0
         recall = relevant_retrieved / len(relevant_docs) if relevant_docs else 0.0
+        f1 = 2 * (precision * recall) / (precision + recall)
         print("")
         print(f"- Query: {query}")
         print(f"  - Precision@{limit}: {precision:.4f}")
         print(f"  - Recall@{limit}: {recall:.4f}")
+        print(f"  - F1 Score: {f1:.4f}")
         print(f"  - Retrieved: {retrieved_titles}")
         print(f"  - Relevant: {relevant_docs}")
 
