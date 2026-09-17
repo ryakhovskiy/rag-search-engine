@@ -1,7 +1,3 @@
-import os
-import sys
-import time
-
 from .inverted_index import InvertedIndex
 from .chunked_semantic_search import ChunkedSemanticSearch
 from .search_utils import load_movies
@@ -130,7 +126,7 @@ def rrf_search(query: str, k: int = 60, limit: int = 5, rerank_method: str = Non
 
 
 def format_results_for_llm_evaluation(res: dict) -> list[str]:
-    return [x['title'] + ' - ' + x['description'] for x in res]
+    return [x['title'] + ' - ' + x['description'][:200] for x in res]
 
 
 def print_rrf_search_results_debug_sorted(res, sort_key: str):

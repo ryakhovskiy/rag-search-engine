@@ -138,6 +138,23 @@ Return a valid JSON list, nothing else. For example:
     return ints
 
 
+def run_augmented_query(formatted_docs: str, query: str) -> str:
+    prompt = f"""You are a RAG agent for a movie streaming service.
+Your task is to provide a natural-language answer to the user's query based on documents retrieved during search.
+Provide a comprehensive answer that addresses the user's query.
+
+Query: {query}
+
+Documents:
+{formatted_docs}
+
+Answer only as bullet-pointed list and nothing else, like:
+- movie 1
+- movie 2
+- movie 3"""
+    return __exec_and_llm_response(prompt)
+
+
 def __exec_and_llm_response(prompt: str) -> str:
     messages = [{"role": "user", "content": prompt}]
     model = "openrouter/free"
