@@ -1,6 +1,7 @@
 from .hybrid_search import rrf_search
 from .hybrid_search import format_results_for_llm_evaluation
 from .llm_client import run_augmented_query
+from .llm_client import run_summarization_query
 
 def run_rag_pipeline(query: str):
     rrf_res = rrf_search(query=query)
@@ -13,3 +14,14 @@ def run_rag_pipeline(query: str):
 
     print("RAG Response:")
     print(f"{llm_res}")
+
+def run_summarization(query: str):
+    rrf_res = rrf_search(query=query)
+    formated_docs = format_results_for_llm_evaluation(rrf_res)
+    summary_res = run_summarization_query(chr(10).join(formated_docs), query)
+
+    print("Search Results:")
+    for item in rrf_res:
+        print(f"  - {item['title']}")
+    print("LLM Summary:")
+    print(f"{summary_res}")

@@ -155,10 +155,27 @@ Answer only as bullet-pointed list and nothing else, like:
     return __exec_and_llm_response(prompt)
 
 
+def run_summarization_query(query: str, formatted_docs: str) -> str:
+    prompt = f"""Provide information useful to the query below by synthesizing data from multiple search results in detail.
+
+The goal is to provide comprehensive information so that users know what their options are.
+Your response should be information-dense and concise, with several key pieces of information about the genre, plot, etc. of each movie.
+
+This should be tailored to a movie streaming service users.
+
+Query: {query}
+
+Search results:
+{formatted_docs}
+
+Provide a comprehensive 3–4 sentence answer that combines information from multiple sources:"""
+    return __exec_and_llm_response(prompt)
+
+
 def __exec_and_llm_response(prompt: str) -> str:
     messages = [{"role": "user", "content": prompt}]
-    model = "openrouter/free"
-    #model = "~deepseek/deepseek-v4-flash-latest"
+    #model = "openrouter/free"
+    model = "~deepseek/deepseek-v4-flash-latest"
 
     try:
         response = client.chat.completions.create(messages=messages, model=model)
