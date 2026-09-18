@@ -7,8 +7,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-
-
 def cosine_similarity(vec1, vec2):
     dot_product = np.dot(vec1, vec2)
     norm1 = np.linalg.norm(vec1)

@@ -39,7 +39,7 @@ def search_command(query: str, limit: int = 5) -> list[dict]:
     return results
 
 
-def load_movies(path: str = "data/movies.json"):
+def load_movies(path: str = "data/movies.json") -> list[dict[str, any]]:
     print(f"loading movies from the file {path}...")
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
